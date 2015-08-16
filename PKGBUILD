@@ -1,0 +1,54 @@
+# Maintainer: Christian Neukirchen <chneukirchen@gmail.com>
+pkgname=ignite-git
+pkgver=20140131
+pkgrel=1
+pkgdesc="A replacement for sysvinit based upon runit, Git HEAD version"
+url="https://github.com/chneukirchen/ignite"
+license=('custom')
+arch=('i686' 'x86_64' 'arm')
+depends=('bash' 'util-linux' 'procps-ng' 'runit-musl')
+makedepends=('gcc' 'make' 'coreutils' 'sed' 'git' 'musl')
+provides=('ignite')
+conflicts=('ignite' 'sysvinit')
+install=ignite.install
+source=('git+https://github.com/chneukirchen/ignite.git')
+md5sums=('SKIP')
+
+# /etc/sv gets added below to this!
+backup=('etc/runit/1'
+	'etc/runit/2'
+	'etc/runit/3'
+        'etc/runit/ctrlaltdel')
+
+pkgver() {
+  cd "$srcdir/ignite"
+  git log -1 --format="%cd" --date=short | sed 's|-||g'
+}
+
+build() {
+  cd "$srcdir/ignite/ignite/util"
+  make
+}
+
+package() {
+  cd "$srcdir/ignite/ignite"
+
+  backup+=(etc/sv/*/run)
+  backup+=(etc/sv/*/finish)
+
+  cp -r etc $pkgdir/
+  chmod -R u=rwX,g=rX,o=rX $pkgdir/etc
+
+  install -D -m0755 util/pause $pkgdir/usr/bin/pause
+  install -D -m0644 util/pause.1 $pkgdir/usr/share/man/man1/pause.1
+
+  install -D -m0755 util/halt $pkgdir/usr/bin/halt
+  install -D -m0755 util/poweroff $pkgdir/usr/bin/poweroff
+  install -D -m0755 util/reboot $pkgdir/usr/bin/reboot
+  install -D -m0755 util/shutdown.sh $pkgdir/usr/bin/shutdown
+  install -D -m0755 util/runlevel.sh $pkgdir/usr/bin/runlevel
+  
+  install -D -m0644 ../COPYING $pkgdir/usr/share/licenses/$pkgname/COPYING
+  install -D -m0644 ../README $pkgdir/usr/share/doc/$pkgname/README
+  install -D -m0644 rc.conf.example $pkgdir/usr/share/doc/$pkgname/rc.conf.example
+}
